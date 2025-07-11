@@ -379,7 +379,7 @@ body[data-theme="light"] .alert-box {
 
 /* === MAP === */
 .map-card {
-  min-width: 600px;
+  min-width: clamp(280px, 80vw, 600px);
   flex: 1 1 45%;
   flex-basis: 100%;
 }
