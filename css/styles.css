@@ -609,6 +609,10 @@ body[data-theme="light"] .setting-section select {
     .card {
       width: 90%;
     }
+    .map-card {
+      max-width: 90% auto;
+      overflow: hidden;
+    }
   }
 
   .telemetry-card {
