@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Car Telemetry Dashboard</title>
+
+  <!-- Core styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="assets/libs/fontawesome/css/all.min.css" />
+  <link rel="stylesheet" href="assets/libs/leaflet/leaflet.css" />
+
+  <!-- Map and charts (external libraries) -->
+  <script src="assets/libs/leaflet/leaflet.js" defer></script>
+  <script src="assets/libs/chart.umd.min.js" defer></script>
+
+  <!-- Socket.IO (if used) -->
+  <script src="/socket.io/socket.io.js" defer></script>
+</head>
+<body data-theme="dark" class="loading">
+
+  <!-- Header with accessible branding -->
+  <header class="dashboard-header" role="banner">
+    <img src="assets/images/BMW-logo.svg" alt="BMW Logo" />
+    <span class="header-title" id="dashboard-title">iDrive Telemetry System</span>
+  </header>
+
+  <!-- Toggle settings menu (aria-label for screen readers) -->
+  <button id="open-settings" class="burger-button" title="Open settings menu" aria-label="Open settings menu">
+    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+  </button>
+
+  <!-- Alerts container with live region for screen readers -->
+  <div id="alert-container" aria-live="assertive" aria-atomic="true" role="region"></div>
+
+  <!-- Dashboard section -->
+  <main class="dashboard" role="main" aria-labelledby="dashboard-title">
+    
+    <!-- Telemetry cards with labels and dynamic data -->
+    <section class="card" aria-labelledby="speed-label">
+      <h2><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Speed</h2>
+      <div class="gauge">
+        <div class="bar" id="speed-bar" role="progressbar" aria-valuemin="0" aria-valuemax="240" aria-valuenow="0">
+          <div class="bar-content"></div>
+        </div>
+        <div class="gauge-label telemetry-value">
+          <span id="speed-value">0</span>
+          <span id="speed-unit">km/h</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="rpm-label">
+      <h2><i class="fa-solid fa-rotate" aria-hidden="true"></i> RPM</h2>
+      <div class="gauge">
+        <div class="bar" id="rpm-bar" role="progressbar" aria-valuemin="0" aria-valuemax="8000" aria-valuenow="0">
+          <div class="bar-content"></div>
+        </div>
+        <div class="gauge-label telemetry-value" id="rpm-label">0 RPM</div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="fuel-label">
+      <h2><i class="fa-solid fa-gas-pump" aria-hidden="true"></i> Fuel</h2>
+      <div class="gauge">
+        <div class="bar" id="fuel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="bar-content"></div>
+        </div>
+        <div class="gauge-label telemetry-value">
+          <span id="fuel-value">0</span>
+          <span id="fuel-unit">%</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="temp-label">
+      <h2><i class="fa-solid fa-temperature-full" aria-hidden="true"></i> Temperature</h2>
+      <div class="gauge">
+        <div class="bar" id="temp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="150" aria-valuenow="0">
+          <div class="bar-content"></div>
+        </div>
+        <div class="gauge-label telemetry-value">
+          <span id="temp-value">0</span>
+          <span id="temp-unit">°C</span>
+        </div>      
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="tire-pressure-label">
+      <h2><i class="fa-solid fa-circle-notch" aria-hidden="true"></i> Tire Pressure</h2>
+      <div class="gauge">
+        <div class="bar" id="tire-pressure-bar" role="progressbar" aria-valuemin="27" aria-valuemax="40" aria-valuenow="0">
+          <div class="bar-content"></div>
+        </div>
+        <div class="gauge-label telemetry-value">
+          <span id="tire-value">0</span>
+          <span id="tire-unit">PSI</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Map section -->
+  <section class="card map-card" aria-label="Vehicle location on map">
+    <h2><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Location</h2>
+    <div id="map" style="height: 300px; border-radius: 12px;" role="region" tabindex="0" aria-label="Map display of vehicle position"></div>
+  </section>
+
+  <!-- Settings panel (sidebar menu) -->
+  <aside id="settings-panel" class="settings-panel" aria-label="Dashboard Settings">
+    <h2><i class="fa-solid fa-sliders" aria-hidden="true"></i> Settings</h2>
+
+    <!-- Appearance settings -->
+    <div class="settings-group" role="group" aria-labelledby="appearance-group">
+      <h3 id="appearance-group"><i class="fa-solid fa-brush" aria-hidden="true"></i> Appearance</h3>
+
+      <div class="setting-section">
+        <label for="theme-select"><i class="fa-solid fa-moon" aria-hidden="true"></i> Theme</label>
+        <button id="theme-toggle" class="theme-toggle">
+          <i class="fa-solid fa-circle-half-stroke"></i>
+          Toggle Theme
+        </button>
+      </div>
+
+      <div class="setting-section">
+        <label for="animation-speed-select"><i class="fa-solid fa-gauge-simple" aria-hidden="true"></i> Animation Speed</label>
+        <div class="custom-dropdown" id="animation-speed-select" data-setting="animation-speed">
+          <div class="dropdown-selected" tabindex="0" aria-haspopup="listbox">Normal</div>
+          <ul class="dropdown-options" role="listbox">
+            <li data-value="slow" role="option">Slow</li>
+            <li data-value="normal" role="option">Normal</li>
+            <li data-value="fast" role="option">Fast</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Units settings -->
+    <div class="settings-group" role="group" aria-labelledby="units-group">
+      <h3 id="units-group"><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> Units</h3>
+
+      <div class="setting-section">
+        <label for="units-select"><i class="fa-solid fa-temperature-half" aria-hidden="true"></i> Measurement System</label>
+        <div class="custom-dropdown" id="units-select" data-setting="units">
+          <div class="dropdown-selected" tabindex="0" aria-haspopup="listbox">km/h, °C</div>
+          <ul class="dropdown-options" role="listbox">
+            <li data-value="metric" role="option">km/h, °C</li>
+            <li data-value="imperial" role="option">mph, °F</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="settings-group" role="group" aria-labelledby="actions-group">
+      <h3 id="actions-group"><i class="fa-solid fa-gear" aria-hidden="true"></i> Actions</h3>
+      <div class="setting-buttons">
+        <button id="reset-settings" aria-label="Reset settings to default">
+          <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset
+        </button>
+        <button id="close-settings" aria-label="Close settings panel">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i> Close
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Load server -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Load modular JavaScript -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
