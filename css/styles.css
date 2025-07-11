@@ -606,6 +606,9 @@ body[data-theme="light"] .setting-section select {
   .content {
     grid-template-columns: 1fr;
     padding: 1rem;
+    .card {
+      width: 90%;
+    }
   }
 
   .telemetry-card {
